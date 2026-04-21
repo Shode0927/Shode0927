@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>通知管理システム</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="manifest" href="/manifest.json">
+</head>
+<body>
+  <!-- ヘッダー -->
+  <header class="header">
+    <div class="header-left">
+      <button class="icon-btn" id="menuToggle" aria-label="メニュー">
+        <span class="hamburger"></span>
+      </button>
+      <h1 class="app-title">通知センター</h1>
+    </div>
+    <div class="header-right">
+      <div class="search-wrap">
+        <input type="search" id="searchInput" placeholder="通知を検索..." autocomplete="off">
+        <span class="search-icon">🔍</span>
+      </div>
+      <button class="icon-btn" id="markAllReadBtn" title="全て既読">✓</button>
+    </div>
+  </header>
+
+  <!-- サイドバー -->
+  <nav class="sidebar" id="sidebar">
+    <div class="sidebar-section">
+      <p class="sidebar-label">フィルター</p>
+      <ul class="nav-list">
+        <li class="nav-item active" data-filter="all" data-archived="0">
+          <span class="nav-icon">🔔</span><span>すべて</span>
+          <span class="badge" id="badge-all"></span>
+        </li>
+        <li class="nav-item" data-filter="unread" data-archived="0">
+          <span class="nav-icon">🔵</span><span>未読</span>
+          <span class="badge" id="badge-unread"></span>
+        </li>
+        <li class="nav-item" data-filter="starred" data-archived="0">
+          <span class="nav-icon">⭐</span><span>スター付き</span>
+          <span class="badge" id="badge-starred"></span>
+        </li>
+        <li class="nav-item" data-filter="urgent" data-archived="0">
+          <span class="nav-icon">🚨</span><span>緊急</span>
+          <span class="badge urgent" id="badge-urgent"></span>
+        </li>
+        <li class="nav-item" data-filter="archived" data-archived="1">
+          <span class="nav-icon">📦</span><span>アーカイブ</span>
+          <span class="badge" id="badge-archived"></span>
+        </li>
+      </ul>
+    </div>
+
+    <div class="sidebar-section">
+      <p class="sidebar-label">カテゴリ</p>
+      <ul class="nav-list" id="categoryList">
+        <li class="nav-item cat-item" data-category="message"><span class="nav-icon">💬</span><span>メッセージ</span></li>
+        <li class="nav-item cat-item" data-category="email"><span class="nav-icon">📧</span><span>メール</span></li>
+        <li class="nav-item cat-item" data-category="sns"><span class="nav-icon">📱</span><span>SNS</span></li>
+        <li class="nav-item cat-item" data-category="finance"><span class="nav-icon">💴</span><span>金融</span></li>
+        <li class="nav-item cat-item" data-category="reminder"><span class="nav-icon">⏰</span><span>リマインダー</span></li>
+        <li class="nav-item cat-item" data-category="news"><span class="nav-icon">📰</span><span>ニュース</span></li>
+        <li class="nav-item cat-item" data-category="work"><span class="nav-icon">💼</span><span>仕事</span></li>
+        <li class="nav-item cat-item" data-category="shopping"><span class="nav-icon">🛒</span><span>ショッピング</span></li>
+        <li class="nav-item cat-item" data-category="media"><span class="nav-icon">🎬</span><span>メディア</span></li>
+        <li class="nav-item cat-item" data-category="system"><span class="nav-icon">⚙️</span><span>システム</span></li>
+      </ul>
+    </div>
+
+    <div class="sidebar-footer">
+      <button class="sidebar-btn" id="openRulesBtn">⚡ 自動ルール設定</button>
+      <button class="sidebar-btn" id="openAddBtn">＋ 通知を追加</button>
+    </div>
+  </nav>
+
+  <!-- メインコンテンツ -->
+  <main class="main" id="main">
+    <!-- 統計カード -->
+    <section class="stats-row" id="statsRow">
+      <div class="stat-card">
+        <div class="stat-num" id="stat-total">—</div>
+        <div class="stat-label">合計</div>
+      </div>
+      <div class="stat-card accent-blue">
+        <div class="stat-num" id="stat-unread">—</div>
+        <div class="stat-label">未読</div>
+      </div>
+      <div class="stat-card accent-yellow">
+        <div class="stat-num" id="stat-starred">—</div>
+        <div class="stat-label">スター</div>
+      </div>
+      <div class="stat-card accent-red">
+        <div class="stat-num" id="stat-urgent">—</div>
+        <div class="stat-label">緊急</div>
+      </div>
+    </section>
+
+    <!-- ツールバー -->
+    <div class="toolbar">
+      <div class="toolbar-left">
+        <input type="checkbox" id="selectAll" title="全選択">
+        <span class="selected-count" id="selectedCount"></span>
+        <div class="bulk-actions" id="bulkActions">
+          <button data-action="read">既読</button>
+          <button data-action="unread">未読</button>
+          <button data-action="star">スター</button>
+          <button data-action="archive">アーカイブ</button>
+          <button data-action="delete" class="danger">削除</button>
+        </div>
+      </div>
+      <div class="toolbar-right">
+        <select id="priorityFilter" title="優先度">
+          <option value="all">優先度: 全て</option>
+          <option value="urgent">🚨 緊急</option>
+          <option value="high">🔴 高</option>
+          <option value="normal">🟡 普通</option>
+          <option value="low">🟢 低</option>
+        </select>
+        <select id="sortSelect" title="並び順">
+          <option value="newest">新しい順</option>
+          <option value="oldest">古い順</option>
+          <option value="priority">優先度順</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- 通知リスト -->
+    <section class="notification-list" id="notificationList">
+      <div class="loading-spinner" id="loadingSpinner">読み込み中...</div>
+    </section>
+
+    <!-- ページネーション -->
+    <div class="pagination" id="pagination"></div>
+  </main>
+
+  <!-- 通知詳細モーダル -->
+  <div class="modal-overlay" id="detailOverlay">
+    <div class="modal" id="detailModal">
+      <button class="modal-close" id="detailClose">×</button>
+      <div class="modal-header">
+        <span class="modal-app-icon" id="detailIcon"></span>
+        <div>
+          <div class="modal-app-name" id="detailAppName"></div>
+          <div class="modal-time" id="detailTime"></div>
+        </div>
+        <span class="priority-badge" id="detailPriority"></span>
+      </div>
+      <h2 class="modal-title" id="detailTitle"></h2>
+      <p class="modal-body" id="detailBody"></p>
+      <div class="modal-actions">
+        <button id="detailRead">既読にする</button>
+        <button id="detailStar">⭐ スター</button>
+        <button id="detailArchive">📦 アーカイブ</button>
+        <button id="detailDelete" class="danger">🗑 削除</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 通知追加モーダル -->
+  <div class="modal-overlay" id="addOverlay">
+    <div class="modal">
+      <button class="modal-close" id="addClose">×</button>
+      <h2 class="modal-title">通知を追加</h2>
+      <form id="addForm" class="form">
+        <label>アプリ名 <span class="required">*</span>
+          <input type="text" name="app_name" required placeholder="例: LINE">
+        </label>
+        <label>タイトル <span class="required">*</span>
+          <input type="text" name="title" required placeholder="例: 新しいメッセージ">
+        </label>
+        <label>本文
+          <textarea name="body" rows="3" placeholder="通知の詳細..."></textarea>
+        </label>
+        <div class="form-row">
+          <label>カテゴリ
+            <select name="category">
+              <option value="other">その他</option>
+              <option value="message">メッセージ</option>
+              <option value="email">メール</option>
+              <option value="sns">SNS</option>
+              <option value="finance">金融</option>
+              <option value="reminder">リマインダー</option>
+              <option value="news">ニュース</option>
+              <option value="work">仕事</option>
+              <option value="shopping">ショッピング</option>
+              <option value="media">メディア</option>
+              <option value="system">システム</option>
+            </select>
+          </label>
+          <label>優先度
+            <select name="priority">
+              <option value="normal">普通</option>
+              <option value="low">低</option>
+              <option value="high">高</option>
+              <option value="urgent">緊急</option>
+            </select>
+          </label>
+        </div>
+        <button type="submit" class="submit-btn">追加する</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ルール設定モーダル -->
+  <div class="modal-overlay" id="rulesOverlay">
+    <div class="modal modal-wide">
+      <button class="modal-close" id="rulesClose">×</button>
+      <h2 class="modal-title">⚡ 自動ルール設定</h2>
+      <p class="modal-desc">条件に一致する通知を自動で処理するルールを設定できます。</p>
+      <div id="rulesList"></div>
+      <hr>
+      <form id="rulesForm" class="form">
+        <h3>新しいルールを追加</h3>
+        <label>ルール名
+          <input type="text" name="rule_name" required placeholder="例: SNS通知を自動アーカイブ">
+        </label>
+        <div class="form-row">
+          <label>条件フィールド
+            <select name="cond_field">
+              <option value="category">カテゴリ</option>
+              <option value="priority">優先度</option>
+              <option value="app_name">アプリ名</option>
+            </select>
+          </label>
+          <label>条件値
+            <input type="text" name="cond_value" required placeholder="例: sns">
+          </label>
+        </div>
+        <label>アクション
+          <select name="rule_action">
+            <option value="archive">アーカイブする</option>
+            <option value="star">スターを付ける</option>
+            <option value="read">既読にする</option>
+          </select>
+        </label>
+        <button type="submit" class="submit-btn">ルールを保存</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- トースト通知 -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <script src="https://cdn.socket.io/4.7.4/socket.io.min.js"></script>
+  <script src="/js/app.js"></script>
+</body>
+</html>
