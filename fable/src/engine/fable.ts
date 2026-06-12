@@ -2,7 +2,7 @@
 // 種(シード)からテーマ・主人公・舞台・物語型を選び、
 // 筋の通った一夜かぎりの寓話を組み上げる。
 
-import { Rng, mulberry32, pick, int } from './prng';
+import { Rng, mulberry32, pick, pickN, int } from './prng';
 
 export type ThemeId = 'hikari' | 'toki' | 'koe' | 'yume' | 'kokoro' | 'kaze';
 
@@ -31,6 +31,10 @@ const EPITHETS = [
   '嘘のつけない',
   '雨の日生まれの',
   '物覚えのよすぎる',
+  '左利きの',
+  '歌のへたな',
+  '地図の読めない',
+  '満月生まれの',
 ] as const;
 
 const ANIMALS = [
@@ -46,6 +50,10 @@ const ANIMALS = [
   '蛙',
   '狼',
   '蛍',
+  '狸',
+  '栗鼠',
+  '山羊',
+  '蟹',
 ] as const;
 
 const STRANGERS = [
@@ -60,6 +68,9 @@ const STRANGERS = [
   '影だけの旅人',
   '歌うやかん',
   '千年生きた鯉',
+  '二本足で歩く魚',
+  'よく物を忘れる地蔵',
+  'けむりでできた犬',
 ] as const;
 
 interface Setting {
@@ -77,6 +88,9 @@ const SETTINGS: readonly Setting[] = [
   { name: '星のよく落ちる岬', short: '岬' },
   { name: '地図に載らない橋のたもと', short: '橋' },
   { name: '言葉の通じない港町', short: '港' },
+  { name: '眠らない雪原', short: '雪原' },
+  { name: '鯨の通りかかる海辺', short: '海辺' },
+  { name: '手紙の届かない山小屋', short: '山小屋' },
 ];
 
 const PRICES = [
@@ -100,7 +114,7 @@ interface ThemeDef {
   questions: string[];
   /** 問答譚: 正直な答え */
   honests: string[];
-  /** 問答譚: 残されたもの */
+  /** 問答譚・客人譚: 残されたもの */
   gifts: { full: string; short: string }[];
   /** 喪失譚: 生まれつき持っていたもの */
   possessions: { full: string; short: string }[];
@@ -122,8 +136,8 @@ const THEMES: readonly ThemeDef[] = [
       '欲しかったのは光ではなく、光を分けたい誰かだったことに。',
     ],
     questions: [
-      'おまえの夜は、なぜそんなに暗い。',
-      'おまえは最後に、いつ空を見上げた。',
+      'おまえの夜は、なぜそんなに暗い',
+      'おまえは最後に、いつ空を見上げた',
     ],
     honests: [
       'わからない。ただ、暗いと言いに来てくれるおまえがいる夜だけ、ここは少しだけ明るい。',
@@ -156,8 +170,8 @@ const THEMES: readonly ThemeDef[] = [
       '急いで歩いた日々のほうが、立ち止まった一日より、ずっとぼやけて見えることに。',
     ],
     questions: [
-      'おまえの昨日と明日は、どちらが重い。',
-      'おまえは何を待って、ここに座っている。',
+      'おまえの昨日と明日は、どちらが重い',
+      'おまえは何を待って、ここに座っている',
     ],
     honests: [
       'わからない。わからないまま、ずいぶん経った。それだけは、確かに私のものだ。',
@@ -190,8 +204,8 @@ const THEMES: readonly ThemeDef[] = [
       '黙って隣にいた者の沈黙が、どんな声より雄弁だったことに。',
     ],
     questions: [
-      'おまえの声は、誰のためのものだ。',
-      'おまえが最後に名前を呼んだのは、誰だ。',
+      'おまえの声は、誰のためのものだ',
+      'おまえが最後に名前を呼んだのは、誰だ',
     ],
     honests: [
       'わからない。ただ、こうしておまえと話す夜は、自分の声が嫌いではない。',
@@ -224,8 +238,8 @@ const THEMES: readonly ThemeDef[] = [
       '飛ぶ夢を見なくなったのは、歩くのが楽しくなった日からだったことに。',
     ],
     questions: [
-      'おまえは夢の中で、何になっている。',
-      '昨夜の夢を、覚えているか。',
+      'おまえは夢の中で、何になっている',
+      '昨夜の夢を、覚えているか',
     ],
     honests: [
       '覚えていない。けれど目が覚めたとき、誰かに会いたかった。それだけ覚えている。',
@@ -258,8 +272,8 @@ const THEMES: readonly ThemeDef[] = [
       '悲しみは置いてくるものではなく、連れて歩けるほど軽くなるものだったことに。',
     ],
     questions: [
-      'おまえの胸の音は、誰に聞かせるための音だ。',
-      'おまえは最後に、いつ泣いた。',
+      'おまえの胸の音は、誰に聞かせるための音だ',
+      'おまえは最後に、いつ泣いた',
     ],
     honests: [
       '覚えていない。ただ、泣けなくなってから、月を見る時間が長くなった。',
@@ -292,8 +306,8 @@ const THEMES: readonly ThemeDef[] = [
       '追い風を待つあいだに、向かい風の中を歩く脚ができていたことに。',
     ],
     questions: [
-      'おまえはなぜ、ここを動かない。',
-      '風はどこから来ると思う。',
+      'おまえはなぜ、ここを動かない',
+      '風はどこから来ると思う',
     ],
     honests: [
       'わからない。ただ、ここで待っていれば、世界のほうが風に乗ってやって来る。',
@@ -317,69 +331,53 @@ const THEMES: readonly ThemeDef[] = [
 
 const COUNT_WORDS = ['七', '九', '十三', '二十一', '四十九', '百'] as const;
 
-// 喪失譚は「持つことと使うこと」の話なので、テーマを問わず筋に合う結びを使う
+// 物語型ごとの固有の結び(テーマの結びと使い分ける)
 const LOSS_MORALS = [
   '天賦は、使う手の中でだけ生きる。',
   '失せ物は、探す者ではなく、使う者のもとへ帰る。',
   '持っていることと、生きていることは、別のことである。',
 ] as const;
 
+const TRADE_MORALS = [
+  '羨んだ荷物も、背負えばおのれの荷より重い。',
+  'よその翼より、おのれの足。',
+  'ないものを数えた指で、あるものを数えなおしてみる。',
+] as const;
+
+const GUEST_MORALS = [
+  '情けは宛名のない手紙である。忘れた頃に、返事が来る。',
+  '開けた戸の数だけ、夜は怖くなくなる。',
+  '親切は、した者が先に忘れるくらいがちょうどよい。',
+] as const;
+
+const JOURNEY_MORALS = [
+  '道は、目的地よりも長く心に残る。',
+  '遠回りで覚えた道だけが、ほんとうの近道になる。',
+  '旅の重さは、荷物ではなく、帰る場所のあるなしで決まる。',
+] as const;
+
+// 交換譚で取り替える「自慢」
+const TRADE_GIFTS = [
+  '誰より速い足',
+  '空をゆく翼',
+  '長い冬の眠り',
+  '遠くまで届く歌声',
+  '夜目のきく瞳',
+  '何も恐れない心',
+  '水の底で息をする術',
+  '百年を生きる寿命',
+] as const;
+
+// 客人譚で客が直していってくれるもの
+const CHORES = ['破れた網', '傾いた戸', '穴のあいた屋根', 'ほつれた寝床', '欠けた茶碗'] as const;
+
 interface ArcResult {
   body: string[];
-  titleNoun: string;
+  title: string;
   moral?: string;
 }
 
-/** 探索譚 — 求めて、歩いて、手に入れて、気づく */
-function questArc(rng: Rng, t: ThemeDef, hero: string, setting: Setting): ArcResult {
-  const desire = pick(rng, t.desires);
-  const stranger = pick(rng, STRANGERS);
-  const price = pick(rng, PRICES);
-  const nights = pick(rng, COUNT_WORDS);
-
-  const body = [
-    `むかし、${setting.name}に、${hero}が住んでいた。${heroNoun(hero)}には、どうしても欲しいものがあった。${desire.full}である。`,
-    `${heroNoun(hero)}は幾つもの夜を歩いた。からだは夜露に重くなり、来た道は星の数ほどになった。それでも、${desire.short}のことを思うと、不思議と足は前へ出た。`,
-    `${nights}つめの夜、${heroNoun(hero)}は${stranger}に出会った。${stranger}は言った。「${desire.full}が欲しいなら、${price}を置いていけ」。${heroNoun(hero)}は長く迷い、迷ったまま、それを差し出した。`,
-    `たしかに${desire.short}は手に入った。だが帰り道、${heroNoun(hero)}はふと気がついた。${pick(rng, t.realizations)}`,
-    `${heroNoun(hero)}は${setting.short}へ帰った。${desire.short}は今も、${setting.short}のどこかで灯っているという。ただ、それを自慢する者を、誰も見たことがない。`,
-  ];
-  return { body, titleNoun: desire.short };
-}
-
-/** 問答譚 — 毎晩の問いに、ある夜ほんとうのことを答える */
-function dialogueArc(rng: Rng, t: ThemeDef, hero: string, setting: Setting): ArcResult {
-  const stranger = pick(rng, STRANGERS);
-  const question = pick(rng, t.questions).replace(/。$/, '');
-  const honest = pick(rng, t.honests);
-  const gift = pick(rng, t.gifts);
-  const nights = pick(rng, COUNT_WORDS);
-
-  const body = [
-    `${setting.name}のはずれに、${hero}が独りで暮らしていた。訪ねてくる者は、長いあいだ、誰もいなかった。`,
-    `ある晩、${stranger}がやって来て、戸も叩かずに尋ねた。「${question}」。${heroNoun(hero)}は答えられなかった。${stranger}は何も言わず、帰っていった。`,
-    `次の晩も、その次の晩も、${stranger}は同じことを尋ねた。${heroNoun(hero)}は賢い答えをこしらえては並べた。立派な答えほど、${stranger}は黙って帰った。`,
-    `${nights}日目の晩、${heroNoun(hero)}は考えるのをやめて、ほんとうのことを言った。「${honest}」`,
-    `${stranger}は初めて笑い、それきり来なくなった。代わりに戸口へ、${gift.full}が残されていた。${heroNoun(hero)}は今もそれを、問いの返事だと思っている。`,
-  ];
-  return { body, titleNoun: gift.short };
-}
-
-/** 喪失譚 — 失くして、探して、流れた先で知る */
-function lossArc(rng: Rng, t: ThemeDef, hero: string, setting: Setting): ArcResult {
-  const possession = pick(rng, t.possessions);
-  const stranger = pick(rng, STRANGERS);
-  const moral = pick(rng, LOSS_MORALS);
-
-  const body = [
-    `${hero}は、生まれたときから${possession.full}を持っていた。${setting.name}では知らぬ者のない自慢だった。`,
-    `ところがある朝、それが失くなっていた。${heroNoun(hero)}は${setting.short}を隅から隅まで探した。岩の下も、水の底も、自分の影の裏側さえも。`,
-    `探しくたびれた頃、${heroNoun(hero)}は${stranger}に出会った。${stranger}は静かに言った。「探しものは、失くした場所にはないよ。おまえがそれを使わなくなった日から、少しずつ、こちらへ流れてくるのさ」。`,
-    `${heroNoun(hero)}は思い当たった。${possession.short}を最後に使った日が、もう思い出せないことに。自慢になった日から、それは飾りになっていたのだ。`,
-    `${heroNoun(hero)}は${setting.short}へ戻り、翌朝から、あるかないかを確かめもせず、それを使って暮らした。${possession.short}がいつ戻ったのか、本人も覚えていないという。`,
-  ];
-  return { body, titleNoun: possession.short, moral };
-}
+type Arc = (rng: Rng, t: ThemeDef, hero: string, setting: Setting) => ArcResult;
 
 /** 「片耳の狐」→「狐」を取り出す(本文の地の文用) */
 function heroNoun(hero: string): string {
@@ -389,7 +387,172 @@ function heroNoun(hero: string): string {
   return hero;
 }
 
-const ARCS = [questArc, dialogueArc, lossArc] as const;
+/** 探索譚 — 求めて、歩いて、手に入れて、気づく */
+const questArc: Arc = (rng, t, hero, setting) => {
+  const n = heroNoun(hero);
+  const desire = pick(rng, t.desires);
+  const stranger = pick(rng, STRANGERS);
+  const price = pick(rng, PRICES);
+  const nights = pick(rng, COUNT_WORDS);
+
+  const opener = pick(rng, [
+    `むかし、${setting.name}に、${hero}が住んでいた。${n}には、どうしても欲しいものがあった。${desire.full}である。`,
+    `${setting.name}の隅で、${hero}は毎晩おなじ夢を見ていた。${desire.full}の夢である。目が覚めるたび、胸の真ん中の穴がひとつ深くなった。`,
+    `${hero}は、欲のすくない${n}だった。ただひとつ、${desire.full}のことだけは、あきらめる日とあきらめない日が、交互にやって来た。`,
+  ]);
+  const journey = pick(rng, [
+    `${n}は幾つもの夜を歩いた。からだは夜露に重くなり、来た道は星の数ほどになった。それでも、${desire.short}のことを思うと、不思議と足は前へ出た。`,
+    `${n}は歩いた。雨の夜は雨と、風の夜は風と連れ立って歩いた。すれちがう者はみな、そんなものはないと笑った。笑われるたび、${n}の足は強情になった。`,
+  ]);
+  const closer = pick(rng, [
+    `${n}は${setting.short}へ帰った。手に入れたものの話を、${n}は誰にもしなかった。ただその日から、${n}はよく笑うようになったという。`,
+    `${n}は${setting.short}へ帰り、それをいちばん暗い棚の奥にしまった。ときどき取り出して眺めるのは、欲しがっていた日々のほうである。`,
+    `やがて${setting.short}には、欲しいものの話をしに、${n}をたずねる者が増えた。${n}は決まって、帰り道の星の話だけをした。`,
+  ]);
+
+  return {
+    body: [
+      opener,
+      journey,
+      `${nights}つめの夜、${n}は${stranger}に出会った。${stranger}は言った。「${desire.full}が欲しいなら、${price}を置いていけ」。${n}は長く迷い、迷ったまま、それを差し出した。`,
+      `たしかに${desire.short}は手に入った。だが帰り道、${n}はふと気がついた。${pick(rng, t.realizations)}`,
+      closer,
+    ],
+    title: pick(rng, [
+      `${hero}と${desire.short}`,
+      `${desire.short}を探しに行った${n}`,
+      `${hero}が差し出したもの`,
+    ]),
+  };
+};
+
+/** 問答譚 — 毎晩の問いに、ある夜ほんとうのことを答える */
+const dialogueArc: Arc = (rng, t, hero, setting) => {
+  const n = heroNoun(hero);
+  const stranger = pick(rng, STRANGERS);
+  const question = pick(rng, t.questions);
+  const honest = pick(rng, t.honests);
+  const gift = pick(rng, t.gifts);
+  const nights = pick(rng, COUNT_WORDS);
+
+  const opener = pick(rng, [
+    `${setting.name}のはずれに、${hero}が独りで暮らしていた。訪ねてくる者は、長いあいだ、誰もいなかった。`,
+    `${hero}は、${setting.name}でいちばん戸締まりのよい家に住んでいた。叩く者のいない戸ほど、固く閉まるものはない。`,
+  ]);
+  const closer = pick(rng, [
+    `${stranger}は初めて笑い、それきり来なくなった。代わりに戸口へ、${gift.full}が残されていた。${n}は今もそれを、問いの返事だと思っている。`,
+    `${stranger}は深くうなずき、「また明日」と言って、本当にそれきり来なくなった。戸口には${gift.full}が残されていた。約束は果たされたのだと、${n}は思うことにしている。`,
+  ]);
+
+  return {
+    body: [
+      opener,
+      `ある晩、${stranger}がやって来て、戸も叩かずに尋ねた。「${question}」。${n}は答えられなかった。${stranger}は何も言わず、帰っていった。`,
+      `次の晩も、その次の晩も、${stranger}は同じことを尋ねた。${n}は賢い答えをこしらえては並べた。立派な答えほど、${stranger}は黙って帰った。`,
+      `${nights}日目の晩、${n}は考えるのをやめて、ほんとうのことを言った。「${honest}」`,
+      closer,
+    ],
+    title: pick(rng, [`${hero}と${gift.short}`, `${hero}への${nights}の問い`]),
+  };
+};
+
+/** 喪失譚 — 失くして、探して、流れた先で知る */
+const lossArc: Arc = (rng, t, hero, setting) => {
+  const n = heroNoun(hero);
+  const possession = pick(rng, t.possessions);
+  const stranger = pick(rng, STRANGERS);
+
+  const opener = pick(rng, [
+    `${hero}は、生まれたときから${possession.full}を持っていた。${setting.name}では知らぬ者のない自慢だった。`,
+    `${setting.name}の者はみな知っていた。${hero}の${possession.short}のことを。誰よりもよく知っていたのは、本人である。`,
+  ]);
+
+  return {
+    body: [
+      opener,
+      `ところがある朝、それが失くなっていた。${n}は${setting.short}を隅から隅まで探した。岩の下も、水の底も、自分の影の裏側さえも。`,
+      `探しくたびれた頃、${n}は${stranger}に出会った。${stranger}は静かに言った。「探しものは、失くした場所にはないよ。おまえがそれを使わなくなった日から、少しずつ、こちらへ流れてくるのさ」。`,
+      `${n}は思い当たった。${possession.short}を最後に使った日が、もう思い出せないことに。自慢になった日から、それは飾りになっていたのだ。`,
+      `${n}は${setting.short}へ戻り、翌朝から、あるかないかを確かめもせず、それを使って暮らした。${possession.short}がいつ戻ったのか、本人も覚えていないという。`,
+    ],
+    title: pick(rng, [`${hero}と${possession.short}`, `${possession.short}の戻った朝`]),
+    moral: pick(rng, LOSS_MORALS),
+  };
+};
+
+/** 交換譚 — 取り替えて、懲りて、取り替えなおす */
+const tradeArc: Arc = (rng, t, hero, setting) => {
+  const n = heroNoun(hero);
+  const other = pick(
+    rng,
+    ANIMALS.filter((a) => a !== n)
+  );
+  const [gift1, gift2] = pickN(rng, TRADE_GIFTS, 2);
+  const stranger = pick(rng, STRANGERS);
+
+  return {
+    body: [
+      `${hero}は、隣に住む${other}が羨ましくてならなかった。${other}の${gift2}が、自分の${gift1}より、ずっと上等に見えたのである。${other}は${other}で、同じことを考えていた。`,
+      `満月の晩、二匹は${setting.name}で落ち合い、${stranger}を立会人にして、たがいの自慢を取り替えた。約束の印に、月に向かって一度ずつ鳴いた。`,
+      `はじめの三日は、夢のようだった。四日目から、夢は寝心地の悪い寝床になった。借り物の${gift2}は${n}のからだには合わず、${other}は${gift1}の使い道をひとつも知らなかった。二匹とも、相手の自慢の重さを、初めて知った。`,
+      `次の満月の晩、二匹はまた${setting.name}で落ち合った。どちらも言い出せずにいるうちに、立会人の${stranger}が先に笑った。取り替えなおした自慢は、ひと月前より、すこしだけ手に馴染んだ。`,
+      `それからも二匹は、たがいを羨ましがって暮らした。ただし悪口のかわりに、自慢の手入れの話をするようになった。`,
+    ],
+    title: pick(rng, [`${n}と${other}の取り替えっこ`, `${n}が${other}になった月`]),
+    moral: pick(rng, TRADE_MORALS),
+  };
+};
+
+/** 客人譚 — 嵐の晩の客を迎え入れ、忘れた頃に返ってくる */
+const guestArc: Arc = (rng, t, hero, setting) => {
+  const n = heroNoun(hero);
+  const stranger = pick(rng, STRANGERS);
+  const chore = pick(rng, CHORES);
+  const gift = pick(rng, t.gifts);
+  const nights = pick(rng, COUNT_WORDS);
+
+  return {
+    body: [
+      `${setting.name}に、${hero}がつましく暮らしていた。蓄えは少なく、戸は薄く、夜は長かった。`,
+      `ある嵐の晩、戸口に${stranger}が倒れていた。${n}は迷わなかった——わけではない。人並みに迷い、人並みより少し長く迷い、それから戸を開けた。`,
+      `${stranger}は多くを語らなかった。ただ、${n}が眠っているあいだに、${chore}が毎晩すこしずつ直っていった。${nights}日目の朝、${stranger}の姿は消えていた。礼の言葉ひとつ、なかった。`,
+      `季節がひとつ巡った頃、戸口に${gift.full}が置かれていた。添え書きはなかった。けれど${n}には、誰からなのか、すぐにわかった。`,
+      `${n}は今も${setting.short}に住んでいる。戸は前より薄くなったが、嵐の晩は、戸口に灯を出して眠ることにしている。`,
+    ],
+    title: pick(rng, [`${hero}と嵐の晩の客`, `${stranger}の置き土産`]),
+    moral: pick(rng, GUEST_MORALS),
+  };
+};
+
+/** 旅立ち譚 — 預かりものを届けに、遠い土地へ */
+const journeyArc: Arc = (rng, t, hero, setting) => {
+  const n = heroNoun(hero);
+  const stranger = pick(rng, STRANGERS);
+  const parcel = pick(rng, t.gifts);
+  const far = pick(
+    rng,
+    SETTINGS.filter((s) => s.short !== setting.short)
+  );
+
+  const hardship = pick(rng, [
+    `道は長かった。${n}は三度道に迷い、二度ひきかえそうと思い、一度だけ泣いた。それでも包みは、濡らさなかった。`,
+    `峠では雪に、谷では霧に呼び止められた。会う者はみな「やめておけ」と言い、そのくせ別れぎわには、自分の分の道順を教えてくれた。`,
+  ]);
+
+  return {
+    body: [
+      `ある日、${hero}は${stranger}から包みを預かった。「${far.name}に住む者へ、${parcel.full}を届けてほしい」。なぜ自分なのかと尋ねると、${stranger}は「おまえが一番、遠くまで行きそうにない顔をしているからだ」と言った。`,
+      hardship,
+      `ようやく辿り着いた${far.name}に、受け取るはずの者はいなかった。あったのは空き家がひとつ。机の上に、書き付けが一枚。「遠くまでご苦労だった。それは、ここまで歩いた者のものだ」。`,
+      `${n}は包みを開けた。${parcel.full}が、長い道のりをひとつも損なわれずに、そこにあった。${n}は笑い、それから少しだけ腹を立て、結局ながく笑った。`,
+      `帰り道は、行きの半分しかかからなかった。迷った場所をぜんぶ、覚えていたからである。`,
+    ],
+    title: pick(rng, [`${hero}と遠い${far.short}`, `${hero}の遠い使い`]),
+    moral: pick(rng, JOURNEY_MORALS),
+  };
+};
+
+const ARCS: readonly Arc[] = [questArc, dialogueArc, lossArc, tradeArc, guestArc, journeyArc];
 
 export function weaveFable(seed: number): Fable {
   const rng = mulberry32(seed);
@@ -401,7 +564,6 @@ export function weaveFable(seed: number): Fable {
   const arc = pick(rng, ARCS);
 
   const result = arc(rng, theme, hero, setting);
-  const { body, titleNoun } = result;
   const moral = result.moral ?? pick(rng, theme.morals);
   const night = int(rng, 1, 999);
 
@@ -411,8 +573,8 @@ export function weaveFable(seed: number): Fable {
     night,
     themeId: theme.id,
     themeKanji: theme.kanji,
-    title: `${hero}と${titleNoun}`,
-    body,
+    title: result.title,
+    body: result.body,
     moral,
     createdAt: Date.now(),
   };
