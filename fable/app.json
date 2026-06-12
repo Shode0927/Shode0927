@@ -1,0 +1,41 @@
+{
+  "expo": {
+    "name": "FABLE 千夜の寓話",
+    "slug": "fable",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "backgroundColor": "#0a0c16",
+    "splash": {
+      "backgroundColor": "#0a0c16"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSMotionUsageDescription": "端末の傾きに合わせて星空を揺らすために使います。"
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#0a0c16",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-font",
+      [
+        "expo-sensors",
+        {
+          "motionPermission": "端末の傾きに合わせて星空を揺らすために使います。"
+        }
+      ]
+    ]
+  }
+}
